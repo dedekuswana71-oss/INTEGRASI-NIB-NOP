@@ -1,0 +1,6 @@
+{
+  "name": "INTEGRASI NIB-NOP Kab. Cianjur",
+  "description": "Sistem Integrasi Spasial Data Pertanahan (NIB) Kantor Pertanahan dan Objek Pajak (NOP) Bapenda Kabupaten Cianjur",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
