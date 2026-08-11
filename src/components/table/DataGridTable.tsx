@@ -111,9 +111,9 @@ export const DataGridTable: React.FC = () => {
       ? filteredRecords.filter(r => selectedIds.includes(r.id))
       : filteredRecords;
 
-    const headers = ["ID", "NIB", "NOP", "Pemilik BPN", "Wajib Pajak Bapenda", "NIK", "Alamat", "Kecamatan", "Desa", "Luas BPN (m2)", "Luas Bapenda (m2)", "Selisih Luas (m2)", "Jenis Hak", "Status", "Tanggal"];
+    const headers = ["ID", "NIB", "NOP", "Pemilik BPN", "Wajib Pajak Bapenda", "NIK", "Alamat", "Kecamatan", "Desa", "Luas BPN (m2)", "Luas Tanah SPPT (m2)", "Luas Bangunan SPPT (m2)", "Selisih Luas Tanah (m2)", "Jenis Hak", "Status", "Tanggal"];
     const rows = recordsToExport.map(r => [
-      r.id, r.nib, r.nop, `"${r.namaPemilikBpn}"`, `"${r.namaWajibPajakBapenda}"`, `'${r.nik}`, `"${r.alamatObjek}"`, r.kecamatan, r.desa, r.luasBpn, r.luasBapenda, r.selisihLuas, r.jenisHak, r.status, r.tanggalUpdate
+      r.id, r.nib, r.nop, `"${r.namaPemilikBpn}"`, `"${r.namaWajibPajakBapenda}"`, `'${r.nik}`, `"${r.alamatObjek}"`, r.kecamatan, r.desa, r.luasBpn, r.luasBapenda, r.luasBangunanBapenda ?? 0, r.selisihLuas, r.jenisHak, r.status, r.tanggalUpdate
     ]);
 
     const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
@@ -341,8 +341,9 @@ export const DataGridTable: React.FC = () => {
                 <th className="p-3.5">Subjek Hak / Wajib Pajak</th>
                 <th className="p-3.5">Lokasi / Kecamatan</th>
                 <th className="p-3.5 text-right">Luas BPN (m²)</th>
-                <th className="p-3.5 text-right">Luas SPPT (m²)</th>
-                <th className="p-3.5 text-right">Selisih (m²)</th>
+                <th className="p-3.5 text-right">Luas Tanah SPPT (m²)</th>
+                <th className="p-3.5 text-right text-amber-800 dark:text-amber-300 bg-amber-50/50 dark:bg-amber-950/20">Luas Bangunan SPPT (m²)</th>
+                <th className="p-3.5 text-right">Selisih Tanah (m²)</th>
                 <th className="p-3.5 text-center">Status</th>
                 <th className="p-3.5 text-center">Aksi</th>
               </tr>
@@ -350,7 +351,7 @@ export const DataGridTable: React.FC = () => {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
               {paginatedRecords.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="p-8 text-center text-slate-400">
+                  <td colSpan={11} className="p-8 text-center text-slate-400">
                     Tidak ada data bidang tanah yang sesuai dengan kriteria filter.
                   </td>
                 </tr>
@@ -418,14 +419,16 @@ export const DataGridTable: React.FC = () => {
                         {rec.luasBpn.toLocaleString('id-ID')} m²
                       </td>
 
-                      {/* Luas Bapenda SPPT (Tanah & Bangunan) */}
-                      <td className="p-3.5 text-right">
-                        <div className="font-bold text-slate-800 dark:text-slate-200">
-                          {rec.luasBapenda.toLocaleString('id-ID')} m² <span className="text-[10px] text-slate-400 font-normal">(Tnh)</span>
-                        </div>
-                        <div className="text-[11px] font-extrabold text-amber-600 dark:text-amber-400">
-                          {(rec.luasBangunanBapenda ?? 0).toLocaleString('id-ID')} m² <span className="text-[10px] font-normal text-amber-700/80 dark:text-amber-300/80">(Bgn)</span>
-                        </div>
+                      {/* Luas Tanah SPPT PBB */}
+                      <td className="p-3.5 text-right font-bold text-slate-800 dark:text-slate-200">
+                        {rec.luasBapenda.toLocaleString('id-ID')} m²
+                      </td>
+
+                      {/* Luas Bangunan SPPT PBB (Kolom Khusus Dashboard) */}
+                      <td className="p-3.5 text-right bg-amber-50/30 dark:bg-amber-950/10">
+                        <span className="font-black text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-lg bg-amber-100/80 dark:bg-amber-900/40 inline-block font-mono">
+                          {(rec.luasBangunanBapenda ?? 0).toLocaleString('id-ID')} m²
+                        </span>
                       </td>
 
                       {/* Selisih */}
@@ -434,7 +437,7 @@ export const DataGridTable: React.FC = () => {
                           <span className="text-slate-400">0 m²</span>
                         ) : (
                           <span className="text-rose-600 dark:text-rose-400">
-                            +{rec.selisihLuas} m² ({rec.persentaseSelisih}%)
+                            +{rec.selisihLuas.toLocaleString('id-ID')} m² ({rec.persentaseSelisih}%)
                           </span>
                         )}
                       </td>
