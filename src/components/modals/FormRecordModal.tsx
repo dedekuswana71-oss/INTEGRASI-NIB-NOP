@@ -288,10 +288,12 @@ export const FormRecordModal: React.FC = () => {
     desa: 'Pamoyanan',
     luasBpn: 500,
     luasBapenda: 500,
+    luasBangunanBapenda: 120,
     jenisHak: 'Hak Milik (HM)' as IntegrationRecord['jenisHak'],
     nomorSertipikat: '',
     classPajak: 'A1' as IntegrationRecord['classPajak'],
     njopPerM2: 1500000,
+    njopBangunanPerM2: 1200000,
     status: 'TERINTEGRASI' as IntegrationStatus,
     lat: -6.8228,
     lng: 107.1398,
@@ -335,10 +337,12 @@ export const FormRecordModal: React.FC = () => {
         desa: editingRecord.desa,
         luasBpn: editingRecord.luasBpn,
         luasBapenda: editingRecord.luasBapenda,
+        luasBangunanBapenda: editingRecord.luasBangunanBapenda ?? 120,
         jenisHak: editingRecord.jenisHak,
         nomorSertipikat: editingRecord.nomorSertipikat || '',
         classPajak: editingRecord.classPajak,
         njopPerM2: editingRecord.njopPerM2,
+        njopBangunanPerM2: editingRecord.njopBangunanPerM2 ?? 1200000,
         status: editingRecord.status,
         lat: initialLat,
         lng: initialLng,
@@ -360,10 +364,12 @@ export const FormRecordModal: React.FC = () => {
         desa: 'Pamoyanan',
         luasBpn: 450,
         luasBapenda: 450,
+        luasBangunanBapenda: 120,
         jenisHak: 'Hak Milik (HM)',
         nomorSertipikat: '',
         classPajak: 'A1',
         njopPerM2: 1200000,
+        njopBangunanPerM2: 1500000,
         status: 'TERINTEGRASI',
         lat: newLat,
         lng: newLng,
@@ -384,17 +390,20 @@ export const FormRecordModal: React.FC = () => {
     }
 
     const totalNjop = formData.luasBapenda * formData.njopPerM2;
+    const totalNjopBangunan = (formData.luasBangunanBapenda || 0) * (formData.njopBangunanPerM2 || 0);
 
     if (editingRecord) {
       updateRecord(editingRecord.id, {
         ...formData,
         totalNjopBapenda: totalNjop,
+        totalNjopBangunan: totalNjopBangunan,
         petugasVerifikator: currentUser.name
       });
     } else {
       addRecord({
         ...formData,
         totalNjopBapenda: totalNjop,
+        totalNjopBangunan: totalNjopBangunan,
         petugasVerifikator: currentUser.name
       });
     }
@@ -793,45 +802,101 @@ export const FormRecordModal: React.FC = () => {
             </div>
           </div>
 
-          {/* Row 6: Luas BPN & Luas Bapenda & NJOP */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-2xl bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
-            <div>
-              <label className="block font-bold text-blue-900 dark:text-blue-300 mb-1">
-                Luas Sertipikat BPN (m²)
-              </label>
-              <input
-                type="number"
-                required
-                value={formData.luasBpn}
-                onChange={(e) => setFormData(prev => ({ ...prev, luasBpn: Number(e.target.value) }))}
-                className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 font-extrabold text-blue-900 dark:text-blue-100 text-sm focus:outline-none"
-              />
+          {/* Row 6a: Luas Tanah & NJOP Tanah */}
+          <div className="p-4 rounded-2xl bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 space-y-3">
+            <div className="flex items-center gap-2 font-bold text-blue-950 dark:text-blue-200 text-xs">
+              <Landmark className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span>Data Tanah: Luas & NJOP Tanah (BPN & Bapenda SPPT PBB)</span>
             </div>
 
-            <div>
-              <label className="block font-bold text-blue-900 dark:text-blue-300 mb-1">
-                Luas SPPT PBB (m²)
-              </label>
-              <input
-                type="number"
-                required
-                value={formData.luasBapenda}
-                onChange={(e) => setFormData(prev => ({ ...prev, luasBapenda: Number(e.target.value) }))}
-                className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 font-extrabold text-blue-900 dark:text-blue-100 text-sm focus:outline-none"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block font-bold text-blue-900 dark:text-blue-300 mb-1">
+                  Luas Sertipikat BPN (m²) *
+                </label>
+                <input
+                  type="number"
+                  required
+                  value={formData.luasBpn}
+                  onChange={(e) => setFormData(prev => ({ ...prev, luasBpn: Number(e.target.value) }))}
+                  className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 font-extrabold text-blue-900 dark:text-blue-100 text-sm focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-blue-900 dark:text-blue-300 mb-1">
+                  Luas SPPT PBB Tanah (m²) *
+                </label>
+                <input
+                  type="number"
+                  required
+                  value={formData.luasBapenda}
+                  onChange={(e) => setFormData(prev => ({ ...prev, luasBapenda: Number(e.target.value) }))}
+                  className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 font-extrabold text-blue-900 dark:text-blue-100 text-sm focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-blue-900 dark:text-blue-300 mb-1">
+                  NJOP Tanah / m² (Rp) *
+                </label>
+                <input
+                  type="number"
+                  required
+                  value={formData.njopPerM2}
+                  onChange={(e) => setFormData(prev => ({ ...prev, njopPerM2: Number(e.target.value) }))}
+                  className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 font-bold text-blue-900 dark:text-blue-100 text-sm focus:outline-none"
+                />
+              </div>
+            </div>
+            
+            <div className="text-[11px] font-mono text-blue-800 dark:text-blue-300">
+              💵 Total NJOP Tanah: <strong>Rp {((formData.luasBapenda || 0) * (formData.njopPerM2 || 0)).toLocaleString('id-ID')}</strong>
+            </div>
+          </div>
+
+          {/* Row 6b: Luas Bangunan & NJOP Bangunan (SPPT PBB) */}
+          <div className="p-4 rounded-2xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/60 space-y-3">
+            <div className="flex items-center gap-2 font-bold text-amber-950 dark:text-amber-200 text-xs">
+              <Building2 className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              <span>Data Objek Pajak Bangunan: Luas SPPT PBB Bangunan & NJOP Bangunan</span>
             </div>
 
-            <div>
-              <label className="block font-bold text-blue-900 dark:text-blue-300 mb-1">
-                NJOP / m² (Rp)
-              </label>
-              <input
-                type="number"
-                required
-                value={formData.njopPerM2}
-                onChange={(e) => setFormData(prev => ({ ...prev, njopPerM2: Number(e.target.value) }))}
-                className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 font-bold text-blue-900 dark:text-blue-100 text-sm focus:outline-none"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block font-bold text-amber-900 dark:text-amber-300 mb-1">
+                  Luas SPPT PBB Bangunan (m²)
+                </label>
+                <input
+                  type="number"
+                  value={formData.luasBangunanBapenda}
+                  onChange={(e) => setFormData(prev => ({ ...prev, luasBangunanBapenda: Number(e.target.value) }))}
+                  placeholder="Contoh: 120 (0 jika tanah kosong/pekarangan)"
+                  className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 font-extrabold text-amber-900 dark:text-amber-100 text-sm focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-amber-900 dark:text-amber-300 mb-1">
+                  NJOP Bangunan / m² (Rp)
+                </label>
+                <input
+                  type="number"
+                  value={formData.njopBangunanPerM2}
+                  onChange={(e) => setFormData(prev => ({ ...prev, njopBangunanPerM2: Number(e.target.value) }))}
+                  placeholder="Contoh: 1500000"
+                  className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 font-bold text-amber-900 dark:text-amber-100 text-sm focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[11px] font-mono text-amber-900 dark:text-amber-300">
+              <div>
+                🏠 Total NJOP Bangunan: <strong>Rp {((formData.luasBangunanBapenda || 0) * (formData.njopBangunanPerM2 || 0)).toLocaleString('id-ID')}</strong>
+              </div>
+              <div className="font-extrabold text-emerald-700 dark:text-emerald-400">
+                💰 Total NJOP Objek (Tanah + Bangunan): Rp {(((formData.luasBapenda || 0) * (formData.njopPerM2 || 0)) + ((formData.luasBangunanBapenda || 0) * (formData.njopBangunanPerM2 || 0))).toLocaleString('id-ID')}
+              </div>
             </div>
           </div>
 

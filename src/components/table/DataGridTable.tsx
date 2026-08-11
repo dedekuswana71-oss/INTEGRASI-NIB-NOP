@@ -19,11 +19,13 @@ import {
   PlusCircle,
   FileSpreadsheet,
   FileCheck2,
-  MapPin
+  MapPin,
+  Upload
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { IntegrationRecord, IntegrationStatus } from '../../types';
 import { ALL_CIANJUR_KECAMATAN, getDesaListByKecamatan, ALL_CIANJUR_DESA } from '../../data/cianjurLocationData';
+import { PersilImporterModal } from '../modals/PersilImporterModal';
 
 export const DataGridTable: React.FC = () => {
   const { 
@@ -46,6 +48,7 @@ export const DataGridTable: React.FC = () => {
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+  const [isImporterOpen, setIsImporterOpen] = useState<boolean>(false);
 
   // Pagination calculation
   const totalItems = filteredRecords.length;
@@ -143,6 +146,15 @@ export const DataGridTable: React.FC = () => {
           {/* Right quick actions */}
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setIsImporterOpen(true)}
+              className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs transition-colors flex items-center gap-1.5 shadow-xs"
+              title="Unggah File PersilUnduh_Merge atau Muat Bidang Tanah Se-Kabupaten Cianjur"
+            >
+              <Upload className="w-4 h-4" />
+              <span>Impor Persil Bhumi</span>
+            </button>
+
+            <button
               onClick={handleExportCSV}
               className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-colors flex items-center gap-1.5"
             >
@@ -162,6 +174,11 @@ export const DataGridTable: React.FC = () => {
             </button>
           </div>
         </div>
+
+        <PersilImporterModal
+          isOpen={isImporterOpen}
+          onClose={() => setIsImporterOpen(false)}
+        />
 
         {/* Filter Dropdowns Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs">
@@ -371,8 +388,8 @@ export const DataGridTable: React.FC = () => {
                         <div className="font-bold text-slate-800 dark:text-slate-200 font-mono">
                           {rec.nop}
                         </div>
-                        <div className="text-[10px] text-slate-400">
-                          Class: {rec.classPajak}
+                        <div className="text-[10px] text-slate-500 font-medium">
+                          Class: {rec.classPajak} • NJOP Bgn: Rp {(rec.njopBangunanPerM2 ?? 0).toLocaleString('id-ID')}/m²
                         </div>
                       </td>
 
@@ -398,12 +415,17 @@ export const DataGridTable: React.FC = () => {
 
                       {/* Luas BPN */}
                       <td className="p-3.5 text-right font-extrabold text-slate-900 dark:text-white">
-                        {rec.luasBpn.toLocaleString('id-ID')}
+                        {rec.luasBpn.toLocaleString('id-ID')} m²
                       </td>
 
-                      {/* Luas Bapenda */}
-                      <td className="p-3.5 text-right font-semibold text-slate-700 dark:text-slate-300">
-                        {rec.luasBapenda.toLocaleString('id-ID')}
+                      {/* Luas Bapenda SPPT (Tanah & Bangunan) */}
+                      <td className="p-3.5 text-right">
+                        <div className="font-bold text-slate-800 dark:text-slate-200">
+                          {rec.luasBapenda.toLocaleString('id-ID')} m² <span className="text-[10px] text-slate-400 font-normal">(Tnh)</span>
+                        </div>
+                        <div className="text-[11px] font-extrabold text-amber-600 dark:text-amber-400">
+                          {(rec.luasBangunanBapenda ?? 0).toLocaleString('id-ID')} m² <span className="text-[10px] font-normal text-amber-700/80 dark:text-amber-300/80">(Bgn)</span>
+                        </div>
                       </td>
 
                       {/* Selisih */}

@@ -134,8 +134,12 @@ export const DetailDrawer: React.FC = () => {
                   <p className="font-mono font-bold text-slate-700 dark:text-slate-300">{selectedRecord.nop}</p>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Luas Objek Pajak</span>
+                  <span className="text-slate-400 block text-[10px]">Luas Tanah SPPT PBB</span>
                   <p className="font-black text-amber-900 dark:text-amber-200 text-sm">{selectedRecord.luasBapenda} m²</p>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px]">Luas Bangunan SPPT PBB</span>
+                  <p className="font-black text-amber-900 dark:text-amber-200 text-sm">{selectedRecord.luasBangunanBapenda ?? 0} m²</p>
                 </div>
               </div>
             </div>
@@ -190,20 +194,39 @@ export const DetailDrawer: React.FC = () => {
             <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 space-y-3">
               <div className="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-200">
                 <Coins className="w-4 h-4 text-emerald-500" />
-                <span>Penilaian PBB & Class Pajak</span>
+                <span>Penilaian PBB, NJOP Tanah & Bangunan</span>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
                   <span className="text-slate-400 block">Class Pajak</span>
                   <span className="font-bold text-slate-800 dark:text-slate-200">{selectedRecord.classPajak}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block">NJOP per m²</span>
+                  <span className="text-slate-400 block">NJOP Tanah / m²</span>
                   <span className="font-bold text-slate-800 dark:text-slate-200">{formatRupiah(selectedRecord.njopPerM2)}</span>
                 </div>
-                <div className="col-span-2 pt-2 border-t border-slate-200 dark:border-slate-700">
-                  <span className="text-slate-400 block">Total NJOP Bapenda</span>
-                  <span className="font-extrabold text-sm text-slate-900 dark:text-white">{formatRupiah(selectedRecord.totalNjopBapenda)}</span>
+                <div>
+                  <span className="text-slate-400 block">Luas Bangunan SPPT</span>
+                  <span className="font-bold text-amber-600 dark:text-amber-400">{selectedRecord.luasBangunanBapenda ?? 0} m²</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block">NJOP Bangunan / m²</span>
+                  <span className="font-bold text-amber-600 dark:text-amber-400">{formatRupiah(selectedRecord.njopBangunanPerM2 ?? 0)}</span>
+                </div>
+
+                <div className="col-span-2 pt-2 border-t border-slate-200 dark:border-slate-700 space-y-1">
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-slate-500">Total NJOP Tanah:</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">{formatRupiah(selectedRecord.totalNjopBapenda)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-slate-500">Total NJOP Bangunan:</span>
+                    <span className="font-bold text-amber-700 dark:text-amber-300">{formatRupiah(selectedRecord.totalNjopBangunan ?? ((selectedRecord.luasBangunanBapenda ?? 0) * (selectedRecord.njopBangunanPerM2 ?? 0)))}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-1 border-t border-slate-200 dark:border-slate-700 text-xs font-extrabold text-emerald-700 dark:text-emerald-400">
+                    <span>Total NJOP Objek Pajak:</span>
+                    <span className="text-sm">{formatRupiah(selectedRecord.totalNjopBapenda + (selectedRecord.totalNjopBangunan ?? ((selectedRecord.luasBangunanBapenda ?? 0) * (selectedRecord.njopBangunanPerM2 ?? 0))))}</span>
+                  </div>
                 </div>
               </div>
             </div>

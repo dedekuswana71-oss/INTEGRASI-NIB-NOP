@@ -34,7 +34,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard Utama', icon: LayoutDashboard, badge: null },
-    { id: 'gis_map', label: 'Peta Spasial NIB-NOP', icon: Map, badge: `${stats.total} Bidang` },
+    { id: 'gis_map', label: 'Peta GIS Spasial', icon: Map, badge: `${stats.total} Bidang` },
     { id: 'records_table', label: 'Data Pertanahan & Pajak', icon: TableProperties, badge: null },
     { id: 'auto_matching', label: 'Padankan (Matching)', icon: GitCompare, badge: stats.belumTerintegrasi > 0 ? `${stats.belumTerintegrasi}` : null, badgeColor: 'bg-amber-500 text-white' },
     { id: 'verification', label: 'Verifikasi & Validasi', icon: ShieldCheck, badge: stats.perluVerifikasi > 0 ? `${stats.perluVerifikasi}` : null, badgeColor: 'bg-rose-500 text-white' },

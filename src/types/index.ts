@@ -29,14 +29,17 @@ export interface IntegrationRecord {
   kecamatan: string;
   desa: string;
   luasBpn: number; // m2
-  luasBapenda: number; // m2
+  luasBapenda: number; // m2 (Luas Tanah SPPT PBB)
+  luasBangunanBapenda?: number; // m2 (Luas Bangunan SPPT PBB)
   selisihLuas: number; // luasBpn - luasBapenda
   persentaseSelisih: number; // %
   jenisHak: 'Hak Milik (HM)' | 'Hak Guna Bangunan (HGB)' | 'Hak Pakai (HP)' | 'Girik/Adat' | 'Hak Pengelolaan (HPL)';
   nomorSertipikat?: string;
   classPajak: 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'Kanal';
-  njopPerM2: number; // IDR per m2
-  totalNjopBapenda: number; // IDR
+  njopPerM2: number; // IDR per m2 (Tanah)
+  totalNjopBapenda: number; // IDR (Tanah)
+  njopBangunanPerM2?: number; // IDR per m2 (Bangunan)
+  totalNjopBangunan?: number; // IDR (Bangunan)
   status: IntegrationStatus;
   lat: number;
   lng: number;

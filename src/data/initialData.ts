@@ -1,6 +1,7 @@
 import { IntegrationRecord, AuditLog, KecamatanStats } from '../types';
+import { generateFullCianjurRecords } from './cianjurFullCountyData';
 
-export const INITIAL_RECORDS: IntegrationRecord[] = [
+const BASE_RECORDS: IntegrationRecord[] = [
   {
     id: 'REC-CJR-001',
     nib: '10.07.01.01.00124',
@@ -13,6 +14,7 @@ export const INITIAL_RECORDS: IntegrationRecord[] = [
     desa: 'Bojong',
     luasBpn: 450,
     luasBapenda: 450,
+    luasBangunanBapenda: 180,
     selisihLuas: 0,
     persentaseSelisih: 0,
     jenisHak: 'Hak Milik (HM)',
@@ -20,6 +22,8 @@ export const INITIAL_RECORDS: IntegrationRecord[] = [
     classPajak: 'A1',
     njopPerM2: 2500000,
     totalNjopBapenda: 1125000000,
+    njopBangunanPerM2: 2000000,
+    totalNjopBangunan: 360000000,
     status: 'TERINTEGRASI',
     lat: -6.8185,
     lng: 107.1580,
@@ -45,6 +49,7 @@ export const INITIAL_RECORDS: IntegrationRecord[] = [
     desa: 'Pamoyanan',
     luasBpn: 620,
     luasBapenda: 580,
+    luasBangunanBapenda: 250,
     selisihLuas: 40,
     persentaseSelisih: 6.9,
     jenisHak: 'Hak Milik (HM)',
@@ -52,6 +57,8 @@ export const INITIAL_RECORDS: IntegrationRecord[] = [
     classPajak: 'A1',
     njopPerM2: 3800000,
     totalNjopBapenda: 2204000000,
+    njopBangunanPerM2: 2500000,
+    totalNjopBangunan: 625000000,
     status: 'SELISIH_LUAS',
     lat: -6.8228,
     lng: 107.1398,
@@ -1025,6 +1032,11 @@ export const INITIAL_RECORDS: IntegrationRecord[] = [
     petugasVerifikator: 'Ahmad Fauzi (Petugas Lapangan)',
     catatan: 'Penyepadanan bidang Desa Sukajaya Kec. Cugenang valid 100%.'
   }
+];
+
+export const INITIAL_RECORDS: IntegrationRecord[] = [
+  ...BASE_RECORDS,
+  ...generateFullCianjurRecords()
 ];
 
 export const INITIAL_AUDIT_LOGS: AuditLog[] = [

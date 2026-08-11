@@ -14,12 +14,14 @@ import {
   Maximize,
   ExternalLink,
   Globe,
-  Compass
+  Compass,
+  Upload
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { IntegrationRecord } from '../../types';
 import { ALL_CIANJUR_KECAMATAN, getDesaListByKecamatan, ALL_CIANJUR_DESA } from '../../data/cianjurLocationData';
 import { latLngToTM3 } from '../../utils/tm3Converter';
+import { PersilImporterModal } from '../modals/PersilImporterModal';
 
 export const GISMapViewer: React.FC = () => {
   const { 
@@ -44,6 +46,7 @@ export const GISMapViewer: React.FC = () => {
   const [mapSearch, setMapSearch] = useState<string>('');
   const [showPolygons, setShowPolygons] = useState<boolean>(true);
   const [showZntOverlay, setShowZntOverlay] = useState<boolean>(true);
+  const [isImporterOpen, setIsImporterOpen] = useState<boolean>(false);
 
   // Filtered records for GIS display
   const mapRecords = records.filter(r => {
@@ -60,13 +63,16 @@ export const GISMapViewer: React.FC = () => {
     return true;
   });
 
+  const [cursorCoords, setCursorCoords] = useState<{ lat: number; lng: number; x: string; y: string; zone: string } | null>(null);
+  const [showLegend, setShowLegend] = useState<boolean>(true);
+
   // Helper function for marker color
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'TERINTEGRASI': return '#10B981'; // Green
-      case 'BELUM_TERINTEGRASI': return '#F59E0B'; // Amber
-      case 'SELISIH_LUAS': return '#EF4444'; // Red
-      case 'PERLU_VERIFIKASI': return '#3B82F6'; // Blue
+      case 'TERINTEGRASI': return '#10B981'; // Emerald Green
+      case 'BELUM_TERINTEGRASI': return '#F59E0B'; // Amber / Golden
+      case 'SELISIH_LUAS': return '#EF4444'; // Crimson Red
+      case 'PERLU_VERIFIKASI': return '#3B82F6'; // Royal Blue
       default: return '#6B7280';
     }
   };
@@ -87,8 +93,22 @@ export const GISMapViewer: React.FC = () => {
       // Center at Cianjur Town Hall / Kantah BPN Cianjur
       const map = L.map(mapContainerRef.current, {
         center: [-6.8228, 107.1398],
-        zoom: 13,
-        zoomControl: true,
+        zoom: 14,
+        zoomControl: false,
+      });
+
+      L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+      // Track cursor coordinates in TM-3
+      map.on('mousemove', (e: L.LeafletMouseEvent) => {
+        const tm3 = latLngToTM3(e.latlng.lat, e.latlng.lng, '48.2');
+        setCursorCoords({
+          lat: e.latlng.lat,
+          lng: e.latlng.lng,
+          x: tm3.formattedX,
+          y: tm3.formattedY,
+          zone: tm3.zone
+        });
       });
 
       mapInstanceRef.current = map;
@@ -108,23 +128,22 @@ export const GISMapViewer: React.FC = () => {
     // Add selected Tile Layer / Bhumi ATR BPN Basemaps
     if (mapType === 'satellite') {
       L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        attribution: 'Bhumi ATR/BPN Satellite &copy; Esri &mdash; Citra Satelit Resolusi Tinggi Kementerian ATR/BPN',
+        attribution: 'Peta Satelit Citra &copy; Esri &mdash; GeoPortal KKP BPN / Bhumi ATR/BPN RI',
         maxZoom: 19
       }).addTo(map);
     } else if (mapType === 'bhumi_pbt') {
       // Base Satelit with PBT Overlay style
       L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        attribution: 'Peta Bidang Tanah (PBT) &copy; Kementerian ATR/BPN RI - GeoPortal Bhumi ATR/BPN',
+        attribution: 'Peta Pendaftaran & Bidang Tanah (PBT) &copy; Kementerian ATR/BPN RI - KKP Web',
         maxZoom: 19
       }).addTo(map);
     } else if (mapType === 'bhumi_znt') {
-      // Dark / Topo base for ZNT
       const tileUrl = darkMode 
         ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
         : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
       
       L.tileLayer(tileUrl, {
-        attribution: 'Zona Nilai Tanah (ZNT) &copy; Bhumi ATR/BPN & Bapenda Cianjur',
+        attribution: 'Peta Zona Nilai Tanah (ZNT) &copy; KKP ATR/BPN & Bapenda Kab. Cianjur',
         maxZoom: 19
       }).addTo(map);
     } else {
@@ -133,7 +152,7 @@ export const GISMapViewer: React.FC = () => {
         : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
       
       L.tileLayer(tileUrl, {
-        attribution: '&copy; OpenStreetMap contributors | GeoPortal Bhumi ATR/BPN',
+        attribution: '&copy; OpenStreetMap contributors | Peta Digital KKP BPN',
         maxZoom: 19
       }).addTo(map);
     }
@@ -150,6 +169,7 @@ export const GISMapViewer: React.FC = () => {
 
     mapRecords.forEach(rec => {
       const color = getStatusColor(rec.status);
+      const tm3Pt = latLngToTM3(rec.lat, rec.lng, '48.2');
 
       // Add Polygon if present and enabled
       if (showPolygons && rec.polygonBoundary && rec.polygonBoundary.length > 0) {
@@ -162,35 +182,52 @@ export const GISMapViewer: React.FC = () => {
           dashArray: rec.status === 'BELUM_TERINTEGRASI' ? '4, 4' : undefined
         });
 
-        const tm3Pt = latLngToTM3(rec.lat, rec.lng, '48.2');
+        // Permanent Tooltip Label KKP BPN style
+        polygon.bindTooltip(`
+          <div style="font-family: monospace; font-size: 10px; font-weight: 800; color: #0F172A; text-align: center;">
+            <div>NIB: ${rec.nib}</div>
+            <div style="font-size: 9px; color: #2563EB;">${rec.luasBpn} m²</div>
+          </div>
+        `, {
+          permanent: true,
+          direction: 'center',
+          className: 'kkp-polygon-label'
+        });
 
         polygon.bindPopup(`
-          <div style="font-family: 'Plus Jakarta Sans', sans-serif; padding: 4px; min-width: 230px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+          <div style="font-family: 'Plus Jakarta Sans', sans-serif; padding: 4px; min-width: 240px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; border-bottom: 1px solid #E2E8F0; padding-bottom: 4px;">
               <span style="font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 999px; background: ${color}20; color: ${color}; uppercase">
                 ${rec.status.replace('_', ' ')}
               </span>
-              <span style="font-size: 10px; font-weight: bold; color: #1E3A8A; background: #DBEAFE; padding: 2px 6px; border-radius: 4px;">
-                Bhumi ATR/BPN
+              <span style="font-size: 10px; font-weight: 800; color: #1E3A8A; background: #DBEAFE; padding: 2px 8px; border-radius: 4px;">
+                GeoKKP BPN
               </span>
             </div>
-            <h4 style="font-size: 13px; font-weight: 800; margin: 0; color: #0F172A;">NIB: ${rec.nib}</h4>
-            <p style="font-size: 11px; color: #475569; margin: 2px 0 8px 0;">NOP: ${rec.nop}</p>
+            
+            <div style="font-size: 12px; font-weight: 800; color: #0F172A; margin-bottom: 2px;">
+              NIB: <span style="font-family: monospace; color: #2563EB;">${rec.nib}</span>
+            </div>
+            <div style="font-size: 11px; font-weight: 700; color: #475569; margin-bottom: 6px;">
+              NOP: <span style="font-family: monospace; color: #059669;">${rec.nop}</span>
+            </div>
             
             <div style="background: #F8FAFC; padding: 8px; border-radius: 8px; border: 1px solid #E2E8F0; font-size: 11px; margin-bottom: 8px;">
               <div><strong>Pemilik BPN:</strong> ${rec.namaPemilikBpn}</div>
               <div><strong>Wajib Pajak:</strong> ${rec.namaWajibPajakBapenda}</div>
-              <div style="margin-top: 4px;"><strong>Luas BPN:</strong> ${rec.luasBpn} m² | <strong>PBB:</strong> ${rec.luasBapenda} m²</div>
+              <div style="margin-top: 4px; padding-top: 4px; border-t: 1px dashed #CBD5E1;">
+                <strong>Luas BPN:</strong> ${rec.luasBpn} m² | <strong>Luas PBB:</strong> ${rec.luasBapenda} m²
+              </div>
               ${rec.selisihLuas > 0 ? `<div style="color: #DC2626; font-weight: bold; margin-top: 2px;">Selisih: ${rec.selisihLuas} m² (${rec.persentaseSelisih}%)</div>` : ''}
             </div>
 
             <div style="background: #EFF6FF; border: 1px solid #BFDBFE; padding: 6px 8px; border-radius: 6px; font-size: 10px; font-family: monospace; color: #1E40AF; margin-bottom: 8px;">
-              <strong>TM3 Zona ${tm3Pt.zone}:</strong><br/>
+              <strong>Sistem Proyeksi TM3 Zona ${tm3Pt.zone}:</strong><br/>
               X: ${tm3Pt.formattedX}<br/>
               Y: ${tm3Pt.formattedY}
             </div>
             
-            <div style="font-size: 10px; color: #64748B; margin-bottom: 6px;">Desa ${rec.desa}, Kec. ${rec.kecamatan}</div>
+            <div style="font-size: 10px; color: #64748B; margin-bottom: 8px;">Desa ${rec.desa}, Kec. ${rec.kecamatan}</div>
             
             <a 
               href="https://bhumi.atrbpn.go.id/map?lat=${rec.lat}&lng=${rec.lng}&zoom=18" 
@@ -198,7 +235,7 @@ export const GISMapViewer: React.FC = () => {
               rel="noopener noreferrer"
               style="display: block; text-align: center; background: #1D4ED8; color: white; padding: 6px; border-radius: 6px; font-size: 11px; font-weight: bold; text-decoration: none;"
             >
-              🌐 Buka Bidang di Bhumi ATR/BPN
+              🌐 Buka Bidang di Bhumi / KKP ATR/BPN
             </a>
           </div>
         `);
@@ -396,6 +433,15 @@ export const GISMapViewer: React.FC = () => {
           </div>
 
           <button
+            onClick={() => setIsImporterOpen(true)}
+            className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs transition-all flex items-center gap-1.5 shadow-xs"
+            title="Unggah File PersilUnduh_Merge atau Muat Bidang Tanah Se-Kabupaten Cianjur"
+          >
+            <Upload className="w-3.5 h-3.5" />
+            <span>Impor Persil Bhumi</span>
+          </button>
+
+          <button
             onClick={() => openBhumiPortal()}
             className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs transition-all flex items-center gap-1.5 shadow-xs"
             title="Buka Portal Bhumi ATR/BPN Resmi di Tab Baru"
@@ -406,8 +452,77 @@ export const GISMapViewer: React.FC = () => {
         </div>
       </div>
 
+      {/* Persil GeoJSON Importer Modal */}
+      <PersilImporterModal 
+        isOpen={isImporterOpen} 
+        onClose={() => setIsImporterOpen(false)} 
+      />
+
       {/* Main Leaflet Map Canvas */}
       <div ref={mapContainerRef} className="w-full h-full z-1" />
+
+      {/* Live TM-3 Coordinate Status Bar (KKP BPN Standard) */}
+      <div className="absolute bottom-4 left-4 z-20 flex flex-wrap items-center gap-3 px-3.5 py-2 rounded-xl bg-slate-900/90 text-white backdrop-blur-md border border-slate-700/60 text-[11px] font-mono shadow-lg pointer-events-auto">
+        <div className="flex items-center gap-1.5 text-amber-400 font-bold">
+          <Compass className="w-3.5 h-3.5 animate-spin-slow" />
+          <span>CRS: TM-3 (DGN95) Zona 48.2</span>
+        </div>
+        {cursorCoords ? (
+          <div className="flex items-center gap-3 text-slate-300">
+            <span>X: <strong className="text-emerald-400">{cursorCoords.x}</strong></span>
+            <span>Y: <strong className="text-emerald-400">{cursorCoords.y}</strong></span>
+            <span className="hidden sm:inline text-slate-400">({cursorCoords.lat.toFixed(6)}, {cursorCoords.lng.toFixed(6)})</span>
+          </div>
+        ) : (
+          <span className="text-slate-400 italic">Arahkan kursor pada peta...</span>
+        )}
+      </div>
+
+      {/* KKP BPN Map Legend Overlay */}
+      <div className="absolute bottom-16 left-4 z-20 pointer-events-auto">
+        {showLegend ? (
+          <div className="p-3 rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 shadow-xl w-64 text-xs animate-in fade-in slide-in-from-bottom-2">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800 mb-2">
+              <span className="font-extrabold text-slate-800 dark:text-slate-100 uppercase text-[10px] tracking-wider flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+                Legenda KKP BPN
+              </span>
+              <button 
+                onClick={() => setShowLegend(false)}
+                className="text-slate-400 hover:text-slate-600 text-xs font-bold"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-md bg-emerald-500 shrink-0 border border-emerald-600" />
+                <span className="text-[11px] text-slate-700 dark:text-slate-300 font-medium">Terintegrasi Valid (NIB + NOP)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-md bg-amber-500 shrink-0 border border-amber-600" />
+                <span className="text-[11px] text-slate-700 dark:text-slate-300 font-medium">Terdaftar BPN (Belum Ada NOP)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-md bg-rose-500 shrink-0 border border-rose-600" />
+                <span className="text-[11px] text-slate-700 dark:text-slate-300 font-medium">Selisih Luas (PBT vs SPPT)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-md bg-blue-500 shrink-0 border border-blue-600" />
+                <span className="text-[11px] text-slate-700 dark:text-slate-300 font-medium">Perlu Verifikasi Fisik</span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowLegend(true)}
+            className="px-3 py-1.5 rounded-xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs shadow-md hover:bg-slate-100 flex items-center gap-1.5"
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+            <span>Tampilkan Legenda</span>
+          </button>
+        )}
+      </div>
 
       {/* Selected Parcel Inspector Side Panel */}
       {selectedRecord && (
