@@ -87,7 +87,7 @@ export const GISMapViewer: React.FC = () => {
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
-  // Helper to zoom directly to cadastral scale 1:250 (Zoom level ~20.5 / fit bounds max 21)
+  // Helper to zoom directly to cadastral scale 1:100 (Zoom level ~21.5 / fit bounds max 22)
   const zoomToCadastralScale = (rec?: IntegrationRecord) => {
     if (!mapInstanceRef.current) return;
     const map = mapInstanceRef.current;
@@ -97,15 +97,15 @@ export const GISMapViewer: React.FC = () => {
       if (targetRec.polygonBoundary && targetRec.polygonBoundary.length > 0) {
         const polygonLatLngs = targetRec.polygonBoundary.map(p => [p.lat, p.lng] as [number, number]);
         const bounds = L.latLngBounds(polygonLatLngs);
-        map.fitBounds(bounds, { maxZoom: 21, padding: [50, 50], animate: true, duration: 1.2 });
+        map.fitBounds(bounds, { maxZoom: 22, padding: [40, 40], animate: true, duration: 1.2 });
       } else {
-        map.flyTo([targetRec.lat, targetRec.lng], 20.5, { duration: 1.2 });
+        map.flyTo([targetRec.lat, targetRec.lng], 21.5, { duration: 1.2 });
       }
       if (!selectedRecord) {
         setSelectedRecord(targetRec);
       }
     } else {
-      map.setZoom(20.5);
+      map.setZoom(21.5);
     }
   };
 
@@ -114,7 +114,7 @@ export const GISMapViewer: React.FC = () => {
     if (!mapContainerRef.current) return;
 
     if (!mapInstanceRef.current) {
-      // Center at Cianjur Town Hall / Kantah BPN Cianjur with maxZoom 22 for 1:250 cadastral detail
+      // Center at Cianjur Town Hall / Kantah BPN Cianjur with maxZoom 22 for 1:100 cadastral detail
       const map = L.map(mapContainerRef.current, {
         center: [-6.8228, 107.1398],
         zoom: 16,
@@ -339,7 +339,7 @@ export const GISMapViewer: React.FC = () => {
 
   }, [mapRecords, showPolygons, mapType]);
 
-  // Handle focus on selected record with 1:250 Cadastral scale
+  // Handle focus on selected record with 1:100 Cadastral scale
   useEffect(() => {
     if (selectedRecord && mapInstanceRef.current) {
       zoomToCadastralScale(selectedRecord);
@@ -463,10 +463,10 @@ export const GISMapViewer: React.FC = () => {
           <button
             onClick={() => zoomToCadastralScale()}
             className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs transition-all flex items-center gap-1.5 shadow-xs"
-            title="Fokus & Zoom Maksimal Skala Cadastral 1:250 ke Bidang Tanah"
+            title="Fokus & Zoom Maksimal Skala Cadastral 1:100 ke Bidang Tanah"
           >
             <Target className="w-3.5 h-3.5" />
-            <span>Zoom 1:250 (Maksimal)</span>
+            <span>Zoom 1:100 (Maksimal)</span>
           </button>
 
           <button
@@ -628,7 +628,7 @@ export const GISMapViewer: React.FC = () => {
                 className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 shadow-xs"
               >
                 <ZoomIn className="w-3.5 h-3.5" />
-                <span>Zoom Skala 1:250</span>
+                <span>Zoom Skala 1:100</span>
               </button>
               <button
                 onClick={() => openBhumiPortal(selectedRecord.lat, selectedRecord.lng, selectedRecord.nib)}
