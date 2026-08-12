@@ -15,7 +15,9 @@ import {
   ExternalLink,
   Globe,
   Compass,
-  Upload
+  Upload,
+  ZoomIn,
+  Target
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { IntegrationRecord } from '../../types';
@@ -81,8 +83,30 @@ export const GISMapViewer: React.FC = () => {
   const openBhumiPortal = (lat?: number, lng?: number, nib?: string) => {
     const targetLat = lat || (selectedRecord ? selectedRecord.lat : -6.8228);
     const targetLng = lng || (selectedRecord ? selectedRecord.lng : 107.1398);
-    const url = `https://bhumi.atrbpn.go.id/map?lat=${targetLat}&lng=${targetLng}&zoom=18${nib ? `&q=${encodeURIComponent(nib)}` : ''}`;
+    const url = `https://bhumi.atrbpn.go.id/map?lat=${targetLat}&lng=${targetLng}&zoom=20${nib ? `&q=${encodeURIComponent(nib)}` : ''}`;
     window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  // Helper to zoom directly to cadastral scale 1:250 (Zoom level ~20.5 / fit bounds max 21)
+  const zoomToCadastralScale = (rec?: IntegrationRecord) => {
+    if (!mapInstanceRef.current) return;
+    const map = mapInstanceRef.current;
+    const targetRec = rec || selectedRecord || (mapRecords.length > 0 ? mapRecords[0] : null);
+
+    if (targetRec) {
+      if (targetRec.polygonBoundary && targetRec.polygonBoundary.length > 0) {
+        const polygonLatLngs = targetRec.polygonBoundary.map(p => [p.lat, p.lng] as [number, number]);
+        const bounds = L.latLngBounds(polygonLatLngs);
+        map.fitBounds(bounds, { maxZoom: 21, padding: [50, 50], animate: true, duration: 1.2 });
+      } else {
+        map.flyTo([targetRec.lat, targetRec.lng], 20.5, { duration: 1.2 });
+      }
+      if (!selectedRecord) {
+        setSelectedRecord(targetRec);
+      }
+    } else {
+      map.setZoom(20.5);
+    }
   };
 
   // Initialize Map
@@ -90,14 +114,16 @@ export const GISMapViewer: React.FC = () => {
     if (!mapContainerRef.current) return;
 
     if (!mapInstanceRef.current) {
-      // Center at Cianjur Town Hall / Kantah BPN Cianjur
+      // Center at Cianjur Town Hall / Kantah BPN Cianjur with maxZoom 22 for 1:250 cadastral detail
       const map = L.map(mapContainerRef.current, {
         center: [-6.8228, 107.1398],
-        zoom: 14,
+        zoom: 16,
+        maxZoom: 22,
         zoomControl: false,
       });
 
       L.control.zoom({ position: 'bottomright' }).addTo(map);
+      L.control.scale({ imperial: false, metric: true, position: 'bottomright' }).addTo(map);
 
       // Track cursor coordinates in TM-3
       map.on('mousemove', (e: L.LeafletMouseEvent) => {
@@ -125,17 +151,19 @@ export const GISMapViewer: React.FC = () => {
       }
     });
 
-    // Add selected Tile Layer / Bhumi ATR BPN Basemaps
+    // Add selected Tile Layer / Bhumi ATR BPN Basemaps with maxNativeZoom 19 & maxZoom 22 (1:250 Scale)
     if (mapType === 'satellite') {
       L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
         attribution: 'Peta Satelit Citra &copy; Esri &mdash; GeoPortal KKP BPN / Bhumi ATR/BPN RI',
-        maxZoom: 19
+        maxNativeZoom: 19,
+        maxZoom: 22
       }).addTo(map);
     } else if (mapType === 'bhumi_pbt') {
       // Base Satelit with PBT Overlay style
       L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
         attribution: 'Peta Pendaftaran & Bidang Tanah (PBT) &copy; Kementerian ATR/BPN RI - KKP Web',
-        maxZoom: 19
+        maxNativeZoom: 19,
+        maxZoom: 22
       }).addTo(map);
     } else if (mapType === 'bhumi_znt') {
       const tileUrl = darkMode 
@@ -144,7 +172,8 @@ export const GISMapViewer: React.FC = () => {
       
       L.tileLayer(tileUrl, {
         attribution: 'Peta Zona Nilai Tanah (ZNT) &copy; KKP ATR/BPN & Bapenda Kab. Cianjur',
-        maxZoom: 19
+        maxNativeZoom: 19,
+        maxZoom: 22
       }).addTo(map);
     } else {
       const tileUrl = darkMode 
@@ -153,7 +182,8 @@ export const GISMapViewer: React.FC = () => {
       
       L.tileLayer(tileUrl, {
         attribution: '&copy; OpenStreetMap contributors | Peta Digital KKP BPN',
-        maxZoom: 19
+        maxNativeZoom: 19,
+        maxZoom: 22
       }).addTo(map);
     }
 
@@ -309,12 +339,10 @@ export const GISMapViewer: React.FC = () => {
 
   }, [mapRecords, showPolygons, mapType]);
 
-  // Handle focus on selected record
+  // Handle focus on selected record with 1:250 Cadastral scale
   useEffect(() => {
     if (selectedRecord && mapInstanceRef.current) {
-      mapInstanceRef.current.flyTo([selectedRecord.lat, selectedRecord.lng], 17, {
-        duration: 1.5
-      });
+      zoomToCadastralScale(selectedRecord);
     }
   }, [selectedRecord]);
 
@@ -431,6 +459,15 @@ export const GISMapViewer: React.FC = () => {
               Vektor
             </button>
           </div>
+
+          <button
+            onClick={() => zoomToCadastralScale()}
+            className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs transition-all flex items-center gap-1.5 shadow-xs"
+            title="Fokus & Zoom Maksimal Skala Cadastral 1:250 ke Bidang Tanah"
+          >
+            <Target className="w-3.5 h-3.5" />
+            <span>Zoom 1:250 (Maksimal)</span>
+          </button>
 
           <button
             onClick={() => setIsImporterOpen(true)}
@@ -585,13 +622,22 @@ export const GISMapViewer: React.FC = () => {
           </div>
 
           <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-2">
-            <button
-              onClick={() => openBhumiPortal(selectedRecord.lat, selectedRecord.lng, selectedRecord.nib)}
-              className="w-full py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 shadow-xs"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              <span>Buka Koordinat di Portal Bhumi ATR/BPN</span>
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => zoomToCadastralScale(selectedRecord)}
+                className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 shadow-xs"
+              >
+                <ZoomIn className="w-3.5 h-3.5" />
+                <span>Zoom Skala 1:250</span>
+              </button>
+              <button
+                onClick={() => openBhumiPortal(selectedRecord.lat, selectedRecord.lng, selectedRecord.nib)}
+                className="flex-1 py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 shadow-xs"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>Portal Bhumi</span>
+              </button>
+            </div>
 
             <div className="flex items-center gap-2">
               <button
